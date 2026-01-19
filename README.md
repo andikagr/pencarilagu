@@ -1,8 +1,8 @@
-# 🎵 PENCARI LAGU (Personal Music Player)
+# PENCARI LAGU (Personal Music Player)
 
 **PENCARI LAGU** adalah aplikasi web streaming musik pribadi yang memungkinkan Anda mencari, mendengarkan, dan mengelola lagu favorit Anda dengan antarmuka yang modern dan responsif. Aplikasi ini dirancang untuk memberikan pengalaman mendengarkan musik yang mulus, mirip dengan aplikasi streaming populer, namun dengan sentuhan personal.
 
-## ✨ Fitur Utama
+## Fitur Utama
 
 *   **Pencarian Lagu Canggih**: Cari lagu, artis, atau podcast favorit Anda dengan mudah menggunakan integrasi API eksternal.
 *   **Pemutar Musik Interaktif**:
@@ -15,7 +15,7 @@
 *   **Desain Responsif & Modern**: Tampilan antarmuka yang elegan (Dark Mode), ramah pengguna (Mobile-First), dan animasi transisi yang halus.
 *   **Streaming Lancar**: Mendukung streaming audio langsung tanpa perlu mengunduh file secara manual.
 
-## 🛠️ Teknologi yang Digunakan
+## Teknologi yang Digunakan
 
 Aplikasi ini dibangun menggunakan teknologi web modern:
 
@@ -30,7 +30,7 @@ Aplikasi ini dibangun menggunakan teknologi web modern:
 *   **Deployment**:
     *   Konfigurasi siap untuk [Vercel](https://vercel.com/).
 
-## 🚀 Cara Menjalankan Project
+## Cara Menjalankan Project
 
 Ikuti langkah-langkah di bawah ini untuk menjalankan aplikasi di komputer lokal Anda:
 
@@ -64,7 +64,7 @@ Pastikan Anda sudah menginstal [Node.js](https://nodejs.org/) di komputer Anda.
     ```
     (Port standar adalah 3002, Anda bisa mengubahnya di `.env` atau `server.js` jika diperlukan).
 
-## 📂 Struktur Folder
+## Struktur Folder
 
 ```
 pencarilagu/
@@ -79,12 +79,7 @@ pencarilagu/
 └── vercel.json      # Konfigurasi deployment Vercel
 ```
 
-## 📝 Catatan Penting
+## Catatan Penting
 
 *   Aplikasi ini menggunakan layanan pihak ketiga untuk metadata dan streaming lagu. Pastikan koneksi internet Anda stabil.
 *   Header khusus digunakan pada backend proxy untuk memastikan komunikasi dengan API berjalan lancar.
-
-## 👨‍💻 Kredit
-
-Dikembangkan oleh **TENJER FORUM**.
-Dibuat dengan ❤️ untuk pecinta musik.
