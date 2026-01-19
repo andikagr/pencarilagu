@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PENCARI LAGU PRIBADI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div id="view-home" class="page-view">
+        <div class="home-heder">
+            <div class="header-text">
+                <span class="greeting">WEBSITE PRIBADI</span>
+                <h2 class="username">CARI LAGU</h2>
+            </div>
+            <div class="header-icons">
+                <i class="fa-regular fa-bell"></i>
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <i class="fa-solid fa-gear"></i>
+            </div>
+        </div>
+
+        <div class="category-chips">
+            <span class="cat-chip active">Music</span>
+        </div>
+
+        <div class="simple-home-container"
+            style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; text-align: center;">
+            <i class="fa-solid fa-music" style="font-size: 60px; color: var(--green); margin-bottom: 20px;"></i>
+            <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 10px;">Selamat Datang</h1>
+            <p style="color: #aaa; margin-bottom: 30px; max-width: 80%;">Cari dan dengarkan lagu favoritmu tanpa batas
+                secara gratis.</p>
+            <button onclick="switchTab('search')"
+                style="background: var(--green); color: black; border: none; padding: 15px 40px; border-radius: 30px; font-weight: 700; font-size: 16px; cursor: pointer;">
+                Mulai Mencari
+            </button>
+        </div>
+    </div>
+
+    <div id="view-search" class="page-view active">
+        <div class="search-header">
+            <h1>Search</h1>
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="What do you want to listen to?">
+            </div>
+        </div>
+
+        <div id="search-loading" class="loading-state" style="display: none;">
+            <div class="spinner"></div> Mencari...
+        </div>
+
+        <div id="search-results" class="result-list">
+            <div class="placeholder-container">
+                <i class="fa-solid fa-music"></i>
+                <p>Play what you love</p>
+                <span>Search for artists, songs, podcasts, and more.</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-library" class="page-view">
+        <div class="top-bar">
+            <div class="lib-header">
+                <div class="user-avatar">T</div>
+                <h2>Your Library</h2>
+            </div>
+            <i class="fa-solid fa-plus add-lib" onclick="openCreateModal()"></i>
+        </div>
+        <div class="filter-chips">
+            <span class="chip active">Playlists</span>
+            <span class="chip">Artists</span>
+            <span class="chip">Albums</span>
+        </div>
+        <div id="library-list" class="result-list">
+        </div>
+    </div>
+
+    <div id="view-playlist-detail" class="page-view">
+        <div class="playlist-header-view">
+            <i class="fa-solid fa-arrow-left" onclick="switchTab('library')"></i>
+            <img id="pl-detail-img" src="" alt="">
+            <div class="pl-detail-info">
+                <span class="tag">PLAYLIST</span>
+                <h1 id="pl-detail-name">Nama Playlist</h1>
+                <p id="pl-detail-count">0 Songs</p>
+                <button class="play-all-btn" onclick="playPlaylistAll()">
+                    <i class="fa-solid fa-play"></i> PUTAR
+                </button>
+            </div>
+        </div>
+        <div id="playlist-songs-list" class="result-list"></div>
+    </div>
+
+    <div class="bottom-player" id="bottom-player">
+        <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="mini-progress"></div>
+        </div>
+        <div class="player-content">
+            <img id="mini-cover" src="https://cdn.odzre.my.id/aax.jpg" alt="cover">
+            <div class="mini-info">
+                <h4 id="mini-title">Not Playing</h4>
+                <p id="mini-artist">TENJER PLAYING MUSIC</p>
+            </div>
+            <div class="mini-controls">
+                <i class="fa-solid fa-play" id="mini-play-btn" onclick="togglePlay()"></i>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-item" onclick="switchTab('home')">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </div>
+        <div class="nav-item active" onclick="switchTab('search')">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Search</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('library')">
+            <i class="fa-solid fa-book"></i>
+            <span>Library</span>
+        </div>
+    </nav>
+
+    <div id="full-player" class="full-player">
+        <div class="full-header">
+            <i class="fa-solid fa-chevron-down" onclick="closeFullPlayer()"></i>
+            <span>Now Playing</span>
+            <i class="fa-solid fa-list-ul" onclick="openAddToPlaylistModal()"></i>
+        </div>
+        <img id="full-cover" src="" alt="">
+        <div class="full-info">
+            <div>
+                <h2 id="full-title">Song Title</h2>
+                <p id="full-artist">Artist</p>
+            </div>
+            <i class="fa-regular fa-heart" id="like-btn" onclick="openLikeOptionModal()"></i>
+        </div>
+        <div class="full-progress">
+            <input type="range" id="main-slider" value="0" max="100">
+            <div class="time">
+                <span id="curr-time">0:00</span>
+                <span id="total-time">0:00</span>
+            </div>
+        </div>
+        <div class="full-controls">
+            <i class="fa-solid fa-shuffle" style="font-size: 20px; color: var(--text-gray);"></i>
+            <i class="fa-solid fa-backward-step"></i>
+            <div class="play-circle" onclick="togglePlay()">
+                <i class="fa-solid fa-play" id="full-play-icon"></i>
+            </div>
+            <i class="fa-solid fa-forward-step"></i>
+            <i class="fa-solid fa-repeat" style="font-size: 20px; color: var(--text-gray);"></i>
+        </div>
+        <div class="dev-credit">Developer: TENJER FORUM</div>
+    </div>
+
+    <div id="modal-create-playlist" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Buat Playlist Baru</h3>
+            <input type="text" id="new-pl-name" placeholder="Nama Playlist">
+            <div class="file-upload-wrapper">
+                <label for="new-pl-file" class="file-label"><i class="fa-solid fa-camera"></i> Pilih Foto Cover</label>
+                <input type="file" id="new-pl-file" accept="image/*" style="display: none;">
+                <span id="file-name-display" style="font-size: 11px; color: #aaa; margin-left: 10px;">Belum ada
+                    foto</span>
+            </div>
+            <div class="modal-btns">
+                <button onclick="closeModal('modal-create-playlist')" class="btn-cancel">Batal</button>
+                <button onclick="saveNewPlaylist()" class="btn-save">Buat</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-add-to-pl" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Simpan ke Playlist</h3>
+            <div id="list-pl-for-add" class="pl-select-list"></div>
+            <button onclick="closeModal('modal-add-to-pl')" class="btn-cancel full-width">Tutup</button>
+        </div>
+    </div>
+
+    <div id="modal-like-options" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Simpan Lagu Ke...</h3>
+            <div id="like-options-list" class="pl-select-list">
+            </div>
+            <button onclick="closeModal('modal-like-options')" class="btn-cancel full-width">Batal</button>
+        </div>
+    </div>
+
+    <audio id="audio-source"></audio>
+    <script src="script.js"></script>
+</body>
+
+</html>
