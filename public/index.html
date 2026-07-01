@@ -14,28 +14,27 @@
     <div id="view-home" class="page-view">
         <div class="home-heder">
             <div class="header-text">
-                <span class="greeting">WEBSITE PRIBADI</span>
-                <h2 class="username">CARI LAGU</h2>
+                <span class="greeting">PlayStation Edition</span>
+                <h2 class="username">Music Center</h2>
             </div>
             <div class="header-icons">
-                <i class="fa-regular fa-bell"></i>
-                <i class="fa-solid fa-clock-rotate-left"></i>
+                <i class="fa-brands fa-playstation"></i>
+                <i class="fa-solid fa-gamepad"></i>
                 <i class="fa-solid fa-gear"></i>
             </div>
         </div>
 
         <div class="category-chips">
-            <span class="cat-chip active">Music</span>
+            <span class="cat-chip active">All Tracks</span>
+            <span class="cat-chip" onclick="quickSearch('Cyberpunk')">Cyberpunk</span>
+            <span class="cat-chip" onclick="quickSearch('God of War')">God of War</span>
         </div>
 
-        <div class="simple-home-container"
-            style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; text-align: center;">
-            <i class="fa-solid fa-music" style="font-size: 60px; color: var(--green); margin-bottom: 20px;"></i>
-            <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 10px;">Selamat Datang</h1>
-            <p style="color: #aaa; margin-bottom: 30px; max-width: 80%;">Cari dan dengarkan lagu favoritmu tanpa batas
-                secara gratis.</p>
-            <button onclick="switchTab('search')"
-                style="background: var(--green); color: black; border: none; padding: 15px 40px; border-radius: 30px; font-weight: 700; font-size: 16px; cursor: pointer;">
+        <div class="simple-home-container">
+            <i class="fa-brands fa-playstation" style="font-size: 60px; margin-bottom: 20px;"></i>
+            <h1>Welcome to PlayStation Music</h1>
+            <p>Listen to your favorite game soundtracks and tracks for free, powered by high-speed iTunes audio streaming previews.</p>
+            <button onclick="switchTab('search')">
                 Mulai Mencari
             </button>
         </div>
