@@ -1,25 +1,35 @@
-const ytSearch = require('yt-search');
 const axios = require('axios');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const forge = require('node-forge');
 
-const execFileAsync = promisify(execFile);
+// Decrypt JioSaavn media URL
+function decryptMediaUrl(encryptedMediaUrl) {
+    if (!encryptedMediaUrl) return '';
+    try {
+        const key = "38346591";
+        const iv = "00000000";
+        const encrypted = forge.util.decode64(encryptedMediaUrl);
+        const decipher = forge.cipher.createDecipher("DES-ECB", forge.util.createBuffer(key));
+        decipher.start({ iv: forge.util.createBuffer(iv) });
+        decipher.update(forge.util.createBuffer(encrypted));
+        decipher.finish();
+        const decrypted = decipher.output.getBytes();
+        return decrypted.replace(/\0/g, '').trim();
+    } catch (e) {
+        console.error("Decryption error:", e.message);
+        return '';
+    }
+}
 
-async function getAudioUrl(videoId) {
-    const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const { stdout, stderr } = await execFileAsync('python', [
-        '-m', 'yt_dlp',
-        '-f', 'bestaudio',
-        '--get-url',
-        '--no-playlist',
-        '--quiet',
-        ytUrl
-    ], { timeout: 20000 });
-
-    // stdout bisa berisi WARNING di stderr, URL di stdout
-    const url = stdout.trim().split('\n').find(l => l.startsWith('http'));
-    if (!url) throw new Error('Gagal mendapatkan URL audio dari YouTube');
-    return url;
+// Decode HTML entities
+function decodeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&apos;/g, "'");
 }
 
 module.exports = async (req, res) => {
@@ -31,60 +41,60 @@ module.exports = async (req, res) => {
     const { url, mode } = req.query;
 
     if (!url) return res.status(400).json({ error: 'Parameter url diperlukan' });
-    if (!mode) return res.status(400).json({ error: 'Parameter mode diperlukan (search/stream)' });
+    if (!mode) return res.status(400).json({ error: 'Parameter mode diperlukan' });
 
     try {
-        // --- MODE SEARCH: Cari via YouTube + iTunes untuk artwork ---
+        // --- MODE SEARCH ---
         if (mode === 'search') {
-            const ytResults = await ytSearch(url);
-            const videos = (ytResults.videos || [])
-                .filter(v => v.videoId && v.seconds > 60)
-                .slice(0, 15);
-
-            // Ambil artwork dari iTunes (opsional, untuk gambar lebih bagus)
-            let itunesMap = {};
-            try {
-                const { data } = await axios.get('https://itunes.apple.com/search', {
-                    params: { term: url, media: 'music', limit: 15, entity: 'song' },
-                    timeout: 5000
-                });
-                (data.results || []).forEach(item => {
-                    const key = item.trackName.toLowerCase().trim();
-                    if (item.artworkUrl100) {
-                        itunesMap[key] = item.artworkUrl100.replace('100x100bb', '600x600bb');
-                    }
-                });
-            } catch (_) { /* iTunes opsional */ }
-
-            const songs = videos.map(v => {
-                const titleKey = v.title.toLowerCase().trim();
-                const artworkFromItunes = itunesMap[titleKey];
-                const thumbnail = artworkFromItunes
-                    || (v.thumbnail && v.thumbnail.url ? v.thumbnail.url : 'https://via.placeholder.com/300');
-
-                return {
-                    title: v.title,
-                    artist: v.author.name,
-                    thumbnail,
-                    url: `/api/index?mode=stream&url=${encodeURIComponent(v.videoId)}`,
-                    videoId: v.videoId,
-                    duration: v.seconds * 1000,
-                    album: ''
-                };
+            const response = await axios.get('https://jiosaavn.com/api.php', {
+                params: {
+                    __call: 'search.getResults',
+                    q: url,
+                    _format: 'json',
+                    _marker: '0',
+                    api_version: '4',
+                    p: '1',
+                    n: '20'
+                },
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                },
+                timeout: 10000
             });
+
+            const results = response.data.results || [];
+            
+            const songs = results
+                .filter(song => song.more_info && song.more_info.encrypted_media_url)
+                .map(song => {
+                    const decrypted = decryptMediaUrl(song.more_info.encrypted_media_url);
+                    // Use 320kbps high quality if available, otherwise fallback to decrypted link
+                    const playableUrl = decrypted ? decrypted.replace('_96.', '_320.') : '';
+                    
+                    // Make image high quality (500x500)
+                    const hdImage = song.image ? song.image.replace('150x150', '500x500') : 'https://via.placeholder.com/500';
+
+                    return {
+                        title: decodeHtml(song.title),
+                        artist: decodeHtml(song.subtitle),
+                        thumbnail: hdImage,
+                        url: playableUrl,
+                        duration: song.more_info.duration ? Number(song.more_info.duration) * 1000 : 0,
+                        album: decodeHtml(song.more_info.album || '')
+                    };
+                })
+                .filter(song => song.url !== ''); // Only keep songs that decrypted successfully
 
             return res.status(200).json({ type: 'list', songs });
         }
 
-        // --- MODE STREAM: Dapatkan URL audio dari YouTube via yt-dlp, lalu redirect ---
+        // --- MODE STREAM (Legacy fallback, direct redirect if needed) ---
         if (mode === 'stream') {
-            const videoId = url;
-            const audioUrl = await getAudioUrl(videoId);
-
-            // Redirect ke URL audio langsung (agar browser memutar dari server YouTube)
-            res.setHeader('Cache-Control', 'no-cache');
-            return res.redirect(302, audioUrl);
+            // Direct redirect since we already have the decrypted URL on client
+            return res.redirect(302, decodeURIComponent(url));
         }
+
+        return res.status(400).json({ error: 'Mode tidak valid' });
 
     } catch (error) {
         console.error('[API Error]', error.message);
