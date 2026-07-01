@@ -199,7 +199,7 @@ function checkLikeStatus() {
 
     if (isLiked) {
         likeBtn.className = 'fa-solid fa-heart';
-        likeBtn.style.color = 'var(--green)';
+        likeBtn.style.color = '#ff2a5f';
     } else {
         likeBtn.className = 'fa-regular fa-heart';
         likeBtn.style.color = 'white';
@@ -236,9 +236,11 @@ function updatePlayIcons() {
     if (isPlaying) {
         miniIcon.className = 'fa-solid fa-pause';
         fullIcon.className = 'fa-solid fa-pause';
+        fullPlayer.classList.add('playing');
     } else {
         miniIcon.className = 'fa-solid fa-play';
         fullIcon.className = 'fa-solid fa-play';
+        fullPlayer.classList.remove('playing');
     }
 }
 
