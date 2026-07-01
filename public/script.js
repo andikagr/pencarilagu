@@ -214,7 +214,14 @@ async function performSearch(query) {
         loadingDiv.style.display = 'none';
 
         if (data.songs && data.songs.length > 0) {
-            data.songs.forEach(song => {
+            const mappedSongs = data.songs.map(s => ({
+                url: s.url,
+                title: s.title,
+                artist: s.artist,
+                cover: s.thumbnail
+            }));
+
+            data.songs.forEach((song, index) => {
                 const item = document.createElement('div');
                 item.className = 'result-item';
 
@@ -243,13 +250,8 @@ async function performSearch(query) {
                         return;
                     }
 
-                    currentPlaylistSongs = [];
-                    playMusic({
-                        url: song.url,
-                        title: song.title,
-                        artist: song.artist,
-                        cover: song.thumbnail
-                    });
+                    currentPlaylistSongs = mappedSongs;
+                    playMusic(mappedSongs[index]);
                 };
                 searchResults.appendChild(item);
             });
@@ -420,6 +422,10 @@ mainSlider.addEventListener('change', (e) => {
 });
 
 audio.addEventListener('ended', async () => {
+    playNext(true); // pass true to indicate auto-play next
+});
+
+async function playNext(isAuto = false) {
     if (!currentMeta) return;
 
     const currentIndex = currentPlaylistSongs.findIndex(s => s.url === currentMeta.url);
@@ -428,32 +434,36 @@ audio.addEventListener('ended', async () => {
         return;
     }
 
-    document.getElementById('mini-title').innerText = "Mencari lagu selanjutnya...";
-
-    try {
-        const res = await fetch(`/api/index?url=${encodeURIComponent(currentMeta.artist)}&mode=search`);
-        const data = await res.json();
-
-        if (data.songs && data.songs.length > 0) {
-            const suggestions = data.songs.filter(s => s.url !== currentMeta.url);
-
-            if (suggestions.length > 0) {
-                const nextSong = suggestions[0];
-                currentPlaylistSongs = [];
-                playMusic({
-                    url: nextSong.url,
-                    title: nextSong.title,
-                    artist: nextSong.artist,
-                    cover: nextSong.thumbnail
-                });
-            } else {
-                isPlaying = false; updatePlayIcons();
+    if (isAuto) {
+        document.getElementById('mini-title').innerText = "Mencari lagu selanjutnya...";
+        try {
+            const res = await fetch(`/api/index?url=${encodeURIComponent(currentMeta.artist)}&mode=search`);
+            const data = await res.json();
+            if (data.songs && data.songs.length > 0) {
+                const suggestions = data.songs.filter(s => s.url !== currentMeta.url);
+                if (suggestions.length > 0) {
+                    const nextSong = suggestions[0];
+                    currentPlaylistSongs = [currentMeta, { url: nextSong.url, title: nextSong.title, artist: nextSong.artist, cover: nextSong.thumbnail }];
+                    playMusic(currentPlaylistSongs[1]);
+                } else {
+                    isPlaying = false; updatePlayIcons();
+                }
             }
+        } catch (e) {
+            isPlaying = false; updatePlayIcons();
         }
-    } catch (e) {
-        isPlaying = false; updatePlayIcons();
     }
-});
+}
+
+function playPrev() {
+    if (!currentMeta) return;
+    const currentIndex = currentPlaylistSongs.findIndex(s => s.url === currentMeta.url);
+    if (currentIndex > 0) {
+        playMusic(currentPlaylistSongs[currentIndex - 1]);
+    } else if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+    }
+}
 
 function formatTime(s) {
     if (isNaN(s)) return "0:00";
