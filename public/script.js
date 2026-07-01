@@ -232,15 +232,18 @@ function togglePlay() {
 function updatePlayIcons() {
     const miniIcon = document.getElementById('mini-play-btn');
     const fullIcon = document.getElementById('full-play-icon');
+    const equalizer = document.getElementById('mini-equalizer');
 
     if (isPlaying) {
         miniIcon.className = 'fa-solid fa-pause';
         fullIcon.className = 'fa-solid fa-pause';
         fullPlayer.classList.add('playing');
+        if (equalizer) equalizer.classList.add('playing');
     } else {
         miniIcon.className = 'fa-solid fa-play';
         fullIcon.className = 'fa-solid fa-play';
         fullPlayer.classList.remove('playing');
+        if (equalizer) equalizer.classList.remove('playing');
     }
 }
 

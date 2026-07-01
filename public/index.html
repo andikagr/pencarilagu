@@ -48,6 +48,13 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="What do you want to listen to?">
             </div>
+            <div class="search-tags">
+                <span class="search-tag" onclick="quickSearch('Lofi')">🌸 Lofi</span>
+                <span class="search-tag" onclick="quickSearch('Indo Pop')">🇮🇩 Indo Pop</span>
+                <span class="search-tag" onclick="quickSearch('Ed Sheeran')">🎤 Ed Sheeran</span>
+                <span class="search-tag" onclick="quickSearch('Alan Walker')">⚡ Alan Walker</span>
+                <span class="search-tag" onclick="quickSearch('Lagu Galau')">💔 Lagu Galau</span>
+            </div>
         </div>
 
         <div id="search-loading" class="loading-state" style="display: none;">
@@ -105,6 +112,12 @@
             <div class="mini-info">
                 <h4 id="mini-title">Not Playing</h4>
                 <p id="mini-artist">TENJER PLAYING MUSIC</p>
+            </div>
+            <div class="equalizer" id="mini-equalizer">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
             </div>
             <div class="mini-controls">
                 <i class="fa-solid fa-play" id="mini-play-btn" onclick="togglePlay()"></i>

@@ -1031,3 +1031,75 @@ body::after {
     font-size: 14px;
     font-weight: 600;
 }
+
+/* --- NEW PREMIUM UI ADDITIONS --- */
+
+/* Search Recommendation Tags */
+.search-tags {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    scrollbar-width: none; /* Hide scrollbar for clean look */
+}
+.search-tags::-webkit-scrollbar {
+    display: none;
+}
+.search-tag {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-gray);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.search-tag:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 242, 254, 0.1);
+}
+
+/* Audio Equalizer Wave Animation */
+.equalizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 18px;
+    width: 24px;
+    margin-left: auto;
+    margin-right: 10px;
+}
+.equalizer span {
+    width: 3px;
+    background: linear-gradient(to top, var(--accent), var(--accent-secondary));
+    height: 3px;
+    border-radius: 3px;
+    transition: height 0.15s ease;
+}
+.equalizer.playing span {
+    animation: bounce 0.8s ease-in-out infinite alternate;
+}
+.equalizer.playing span:nth-child(1) { animation-delay: 0.1s; animation-duration: 0.75s; }
+.equalizer.playing span:nth-child(2) { animation-delay: 0.3s; animation-duration: 0.9s; }
+.equalizer.playing span:nth-child(3) { animation-delay: 0.15s; animation-duration: 0.65s; }
+.equalizer.playing span:nth-child(4) { animation-delay: 0.4s; animation-duration: 0.85s; }
+
+@keyframes bounce {
+    0% { height: 3px; }
+    100% { height: 18px; }
+}
+
+/* Glowing Neon Album Art (Full Player) */
+.full-player img {
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 242, 254, 0.15);
+}
+.full-player.playing img {
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5), 0 0 50px rgba(0, 242, 254, 0.25);
+}
