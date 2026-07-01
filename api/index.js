@@ -38,8 +38,12 @@ async function spotify(req, res, input, mode) {
                 responseType: 'stream' // PENTING: Jangan buffer, tapi stream
             });
 
-            // 3. Teruskan stream langsung ke Frontend
+            // 3. Set header agar browser bisa memutar audio
             res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Accept-Ranges', 'bytes');
+            res.setHeader('Cache-Control', 'no-cache');
+
+            // 4. Teruskan stream langsung ke Frontend
             response.data.pipe(res);
         }
 
