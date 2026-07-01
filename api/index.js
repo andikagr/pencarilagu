@@ -1,4 +1,26 @@
+const ytSearch = require('yt-search');
 const axios = require('axios');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+
+const execFileAsync = promisify(execFile);
+
+async function getAudioUrl(videoId) {
+    const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const { stdout, stderr } = await execFileAsync('python', [
+        '-m', 'yt_dlp',
+        '-f', 'bestaudio',
+        '--get-url',
+        '--no-playlist',
+        '--quiet',
+        ytUrl
+    ], { timeout: 20000 });
+
+    // stdout bisa berisi WARNING di stderr, URL di stdout
+    const url = stdout.trim().split('\n').find(l => l.startsWith('http'));
+    if (!url) throw new Error('Gagal mendapatkan URL audio dari YouTube');
+    return url;
+}
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -12,51 +34,56 @@ module.exports = async (req, res) => {
     if (!mode) return res.status(400).json({ error: 'Parameter mode diperlukan (search/stream)' });
 
     try {
-        // --- MODE SEARCH: Cari lagu via iTunes API ---
+        // --- MODE SEARCH: Cari via YouTube + iTunes untuk artwork ---
         if (mode === 'search') {
-            const { data } = await axios.get('https://itunes.apple.com/search', {
-                params: {
-                    term: url,
-                    media: 'music',
-                    limit: 20,
-                    entity: 'song'
-                },
-                timeout: 10000
-            });
+            const ytResults = await ytSearch(url);
+            const videos = (ytResults.videos || [])
+                .filter(v => v.videoId && v.seconds > 60)
+                .slice(0, 15);
 
-            // Format response agar cocok dengan frontend yang sudah ada
-            const songs = (data.results || [])
-                .filter(item => item.previewUrl && item.kind === 'song')
-                .map(item => ({
-                    title: item.trackName,
-                    artist: item.artistName,
-                    thumbnail: item.artworkUrl100.replace('100x100', '300x300'), // gambar lebih besar
-                    url: item.previewUrl, // preview URL 30 detik dari Apple
-                    duration: item.trackTimeMillis,
-                    album: item.collectionName
-                }));
+            // Ambil artwork dari iTunes (opsional, untuk gambar lebih bagus)
+            let itunesMap = {};
+            try {
+                const { data } = await axios.get('https://itunes.apple.com/search', {
+                    params: { term: url, media: 'music', limit: 15, entity: 'song' },
+                    timeout: 5000
+                });
+                (data.results || []).forEach(item => {
+                    const key = item.trackName.toLowerCase().trim();
+                    if (item.artworkUrl100) {
+                        itunesMap[key] = item.artworkUrl100.replace('100x100bb', '600x600bb');
+                    }
+                });
+            } catch (_) { /* iTunes opsional */ }
+
+            const songs = videos.map(v => {
+                const titleKey = v.title.toLowerCase().trim();
+                const artworkFromItunes = itunesMap[titleKey];
+                const thumbnail = artworkFromItunes
+                    || (v.thumbnail && v.thumbnail.url ? v.thumbnail.url : 'https://via.placeholder.com/300');
+
+                return {
+                    title: v.title,
+                    artist: v.author.name,
+                    thumbnail,
+                    url: `/api/index?mode=stream&url=${encodeURIComponent(v.videoId)}`,
+                    videoId: v.videoId,
+                    duration: v.seconds * 1000,
+                    album: ''
+                };
+            });
 
             return res.status(200).json({ type: 'list', songs });
         }
 
-        // --- MODE STREAM: Proxy audio preview dari Apple ---
+        // --- MODE STREAM: Dapatkan URL audio dari YouTube via yt-dlp, lalu redirect ---
         if (mode === 'stream') {
-            // url di sini adalah previewUrl dari iTunes
-            const audioUrl = decodeURIComponent(url);
+            const videoId = url;
+            const audioUrl = await getAudioUrl(videoId);
 
-            const response = await axios.get(audioUrl, {
-                responseType: 'stream',
-                timeout: 30000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
-            });
-
-            res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mp4');
-            res.setHeader('Accept-Ranges', 'bytes');
+            // Redirect ke URL audio langsung (agar browser memutar dari server YouTube)
             res.setHeader('Cache-Control', 'no-cache');
-
-            response.data.pipe(res);
+            return res.redirect(302, audioUrl);
         }
 
     } catch (error) {

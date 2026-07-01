@@ -1,3 +1,11 @@
 {
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    },
+    "api/stream.js": {
+      "maxDuration": 30
+    }
+  }
 }
