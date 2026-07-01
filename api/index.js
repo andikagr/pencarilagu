@@ -1,69 +1,68 @@
 const axios = require('axios');
 
-// Header standar agar tidak terdeteksi bot
-const HEADERS = {
-    origin: 'https://spotdown.org',
-    referer: 'https://spotdown.org/',
-    'user-agent': 'Mozilla/5.0 (Linux; Android 15; SM-F958 Build/AP3A.240905.015) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.6723.86 Mobile Safari/537.36'
-};
+module.exports = async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
 
-async function spotify(req, res, input, mode) {
+    if (req.method === 'OPTIONS') return res.status(200).end();
+
+    const { url, mode } = req.query;
+
+    if (!url) return res.status(400).json({ error: 'Parameter url diperlukan' });
+    if (!mode) return res.status(400).json({ error: 'Parameter mode diperlukan (search/stream)' });
+
     try {
-        if (!input) throw new Error('Input is required.');
-
-        // --- MODE SEARCH (Hanya Metadata) ---
+        // --- MODE SEARCH: Cari lagu via iTunes API ---
         if (mode === 'search') {
-            const { data: s } = await axios.get(`https://spotdown.org/api/song-details?url=${encodeURIComponent(input)}`, { headers: HEADERS });
-            
-            return res.status(200).json({
-                type: 'list',
-                songs: s.songs 
+            const { data } = await axios.get('https://itunes.apple.com/search', {
+                params: {
+                    term: url,
+                    media: 'music',
+                    limit: 20,
+                    entity: 'song'
+                },
+                timeout: 10000
             });
+
+            // Format response agar cocok dengan frontend yang sudah ada
+            const songs = (data.results || [])
+                .filter(item => item.previewUrl && item.kind === 'song')
+                .map(item => ({
+                    title: item.trackName,
+                    artist: item.artistName,
+                    thumbnail: item.artworkUrl100.replace('100x100', '300x300'), // gambar lebih besar
+                    url: item.previewUrl, // preview URL 30 detik dari Apple
+                    duration: item.trackTimeMillis,
+                    album: item.collectionName
+                }));
+
+            return res.status(200).json({ type: 'list', songs });
         }
 
-        // --- MODE STREAM (Langsung Audio) ---
-        // Backend bertindak sebagai proxy stream
+        // --- MODE STREAM: Proxy audio preview dari Apple ---
         if (mode === 'stream') {
-            // 1. Dapatkan detail lagu untuk mengambil URL download internal
-            const { data: s } = await axios.get(`https://spotdown.org/api/song-details?url=${encodeURIComponent(input)}`, { headers: HEADERS });
-            const song = s.songs[0];
-            
-            if (!song) throw new Error('Track not found.');
+            // url di sini adalah previewUrl dari iTunes
+            const audioUrl = decodeURIComponent(url);
 
-            // 2. Request Stream Audio dari Provider
-            const response = await axios.post('https://spotdown.org/api/download', {
-                url: song.url
-            }, {
-                headers: HEADERS,
-                responseType: 'stream' // PENTING: Jangan buffer, tapi stream
+            const response = await axios.get(audioUrl, {
+                responseType: 'stream',
+                timeout: 30000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
             });
 
-            // 3. Set header agar browser bisa memutar audio
-            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Type', response.headers['content-type'] || 'audio/mp4');
             res.setHeader('Accept-Ranges', 'bytes');
             res.setHeader('Cache-Control', 'no-cache');
 
-            // 4. Teruskan stream langsung ke Frontend
             response.data.pipe(res);
         }
 
     } catch (error) {
+        console.error('[API Error]', error.message);
         if (!res.headersSent) {
             res.status(500).json({ error: error.message });
         }
     }
-};
-
-module.exports = async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    
-    if (req.method === 'OPTIONS') return res.status(200).end();
-
-    const { url, mode } = req.query; // mode: 'search' atau 'stream'
-
-    if (!url) return res.status(400).json({ error: 'URL is required' });
-
-    // Panggil fungsi logic
-    await spotify(req, res, url, mode);
 };

@@ -163,8 +163,8 @@ async function playMusic(songData) {
     document.getElementById('mini-play-btn').className = 'fa-solid fa-spinner fa-spin';
 
     try {
-        const streamUrl = `/api/index?url=${encodeURIComponent(songData.url)}&mode=stream`;
-        audio.src = streamUrl;
+        // Langsung gunakan URL audio preview dari iTunes (lebih cepat & hemat bandwidth serverless)
+        audio.src = songData.url;
         audio.preload = "auto";
         await audio.play();
 
