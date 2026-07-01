@@ -1,6 +1,41 @@
 const ytSearch = require('yt-search');
 const axios = require('axios');
 
+function extractVideoId(url) {
+    if (!url) return null;
+    
+    // Clean whitespace
+    const cleanUrl = url.trim();
+
+    // Check for youtu.be
+    if (cleanUrl.includes('youtu.be/')) {
+        const parts = cleanUrl.split('youtu.be/');
+        if (parts[1]) {
+            return parts[1].split('?')[0].split('/')[0];
+        }
+    }
+    
+    // Check for watch?v=
+    if (cleanUrl.includes('v=')) {
+        const parts = cleanUrl.split('v=');
+        if (parts[1]) {
+            return parts[1].split('&')[0];
+        }
+    }
+    
+    // Check for embed/ or v/
+    if (cleanUrl.includes('embed/')) {
+        return cleanUrl.split('embed/')[1].split('?')[0];
+    }
+    
+    // If it looks like a video ID (11 chars, alphanumeric + underscores/dashes)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(cleanUrl)) {
+        return cleanUrl;
+    }
+    
+    return null;
+}
+
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -15,13 +50,34 @@ module.exports = async (req, res) => {
     try {
         // --- MODE SEARCH: Cari lagu di YouTube ---
         if (mode === 'search') {
+            const videoId = extractVideoId(url);
+
+            if (videoId) {
+                try {
+                    const v = await ytSearch({ videoId });
+                    if (v) {
+                        const song = {
+                            title: v.title,
+                            artist: v.author.name,
+                            thumbnail: v.thumbnail || `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+                            url: `https://www.youtube.com/watch?v=${v.videoId}`,
+                            videoId: v.videoId,
+                            duration: v.seconds * 1000,
+                            album: ''
+                        };
+                        return res.status(200).json({ type: 'list', songs: [song] });
+                    }
+                } catch (err) {
+                    console.error("Direct lookup failed, falling back to search:", err.message);
+                }
+            }
+
             const ytResults = await ytSearch(url);
-            // Ambil video yang durasinya > 30 detik dan < 15 menit (untuk menghindari full album/playlist panjang)
             const videos = (ytResults.videos || [])
                 .filter(v => v.videoId && v.seconds > 30 && v.seconds < 900)
                 .slice(0, 20);
 
-            // Ambil artwork berkualitas dari iTunes jika judulnya mirip (opsional, untuk UI estetik)
+            // Ambil artwork berkualitas dari iTunes jika judulnya mirip (opsional)
             let itunesMap = {};
             try {
                 const { data } = await axios.get('https://itunes.apple.com/search', {
