@@ -1,4 +1,164 @@
-const audio = document.getElementById('audio-source');
+// Dynamic Audio Engine Selector (Native Audio vs YouTube Iframe Player)
+const nativeAudio = document.getElementById('audio-source');
+let activeEngine = 'native'; // 'native' or 'youtube'
+let ytPlayer;
+let timeUpdateInterval;
+
+// Load YouTube Iframe API
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+window.onYouTubeIframeAPIReady = function() {
+    ytPlayer = new YT.Player('yt-player', {
+        height: '0',
+        width: '0',
+        videoId: '',
+        playerVars: {
+            'playsinline': 1,
+            'controls': 0,
+            'disablekb': 1,
+            'fs': 0,
+            'rel': 0
+        },
+        events: {
+            'onReady': () => {
+                console.log("YouTube Player Ready");
+            },
+            'onStateChange': onPlayerStateChange
+        }
+    });
+};
+
+function onPlayerStateChange(event) {
+    if (activeEngine !== 'youtube') return;
+    
+    if (event.data === YT.PlayerState.PLAYING) {
+        audioMock.dispatchEvent('playing');
+        startTrackingTime();
+    } else if (event.data === YT.PlayerState.BUFFERING) {
+        audioMock.dispatchEvent('waiting');
+    } else if (event.data === YT.PlayerState.ENDED) {
+        audioMock.dispatchEvent('ended');
+        stopTrackingTime();
+    } else if (event.data === YT.PlayerState.PAUSED) {
+        stopTrackingTime();
+    }
+}
+
+function startTrackingTime() {
+    if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+    timeUpdateInterval = setInterval(() => {
+        audioMock.dispatchEvent('timeupdate');
+    }, 250);
+}
+
+function stopTrackingTime() {
+    if (timeUpdateInterval) {
+        clearInterval(timeUpdateInterval);
+        timeUpdateInterval = null;
+    }
+}
+
+// Forward native audio events to audioMock
+nativeAudio.addEventListener('waiting', () => {
+    if (activeEngine === 'native') audioMock.dispatchEvent('waiting');
+});
+nativeAudio.addEventListener('playing', () => {
+    if (activeEngine === 'native') audioMock.dispatchEvent('playing');
+});
+nativeAudio.addEventListener('timeupdate', () => {
+    if (activeEngine === 'native') audioMock.dispatchEvent('timeupdate');
+});
+nativeAudio.addEventListener('ended', () => {
+    if (activeEngine === 'native') audioMock.dispatchEvent('ended');
+});
+
+const audioMock = {
+    _src: '',
+    _preload: '',
+    listeners: {},
+    addEventListener(event, callback) {
+        if (!this.listeners[event]) this.listeners[event] = [];
+        this.listeners[event].push(callback);
+    },
+    dispatchEvent(event) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(cb => cb());
+        }
+    },
+    get src() { return this._src; },
+    set src(val) {
+        this._src = val;
+        if (val.includes('youtube.com') || val.includes('youtu.be')) {
+            activeEngine = 'youtube';
+            nativeAudio.pause();
+        } else {
+            activeEngine = 'native';
+            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+            nativeAudio.src = val;
+        }
+    },
+    get preload() { return this._preload; },
+    set preload(val) {
+        this._preload = val;
+        if (activeEngine === 'native') nativeAudio.preload = val;
+    },
+    async play() {
+        if (!this._src) return;
+        
+        if (activeEngine === 'youtube') {
+            let videoId = '';
+            try {
+                const urlObj = new URL(this._src);
+                videoId = urlObj.searchParams.get('v');
+            } catch (_) {
+                videoId = this._src;
+            }
+            
+            if (videoId && ytPlayer && ytPlayer.loadVideoById) {
+                ytPlayer.loadVideoById(videoId);
+                ytPlayer.playVideo();
+            }
+        } else {
+            await nativeAudio.play();
+        }
+    },
+    pause() {
+        if (activeEngine === 'youtube') {
+            if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+        } else {
+            nativeAudio.pause();
+        }
+    },
+    get currentTime() {
+        if (activeEngine === 'youtube') {
+            if (ytPlayer && ytPlayer.getCurrentTime) return ytPlayer.getCurrentTime();
+            return 0;
+        } else {
+            return nativeAudio.currentTime;
+        }
+    },
+    set currentTime(val) {
+        if (activeEngine === 'youtube') {
+            if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(val, true);
+        } else {
+            nativeAudio.currentTime = val;
+        }
+    },
+    get duration() {
+        if (activeEngine === 'youtube') {
+            if (ytPlayer && ytPlayer.getDuration) return ytPlayer.getDuration();
+            return 0;
+        } else {
+            return nativeAudio.duration;
+        }
+    }
+};
+
+const audio = audioMock;
+
 // UI Elements
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('search-results');
