@@ -2,17 +2,17 @@
 
 :root {
     --bg-color: #000000;
-    --bg-gradient: radial-gradient(circle at top right, #120c24, #000000 80%);
+    --bg-gradient: radial-gradient(circle at top right, #1a0a1f, #000000 80%);
     --nav-color: rgba(18, 19, 20, 0.95);
     
-    /* PlayStation Brand Colors */
-    --accent: #0070d1; /* PlayStation Blue */
-    --accent-pressed: #0064b7;
-    --accent-active: #004d8d;
-    --accent-secondary: #00f2fe; /* Neon Cyan for active highlights */
-    --commerce: #d53b00; /* Commerce Orange */
+    /* Vibe Brand Colors (Pink & Purple) */
+    --accent: #ff2a96; /* Neon Pink */
+    --accent-pressed: #e6197b;
+    --accent-active: #c51065;
+    --accent-secondary: #8b2cf5; /* Vibrant Purple for gradients */
+    --commerce: #ff2a96; 
     
-    /* PlayStation Surfaces */
+    /* Surfaces */
     --surface-dark-elevated: #121314;
     --surface-dark-card: #181818;
     --glass-border: rgba(255, 255, 255, 0.08);
@@ -57,7 +57,7 @@ body {
     position: relative;
 }
 
-/* PlayStation Blue ambient glow in background */
+/* Ambient Glow in background */
 body::before {
     content: '';
     position: absolute;
@@ -65,7 +65,7 @@ body::before {
     left: -10%;
     width: 50%;
     height: 50%;
-    background: radial-gradient(circle, rgba(0, 112, 209, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 42, 150, 0.12) 0%, transparent 70%);
     z-index: 1;
     pointer-events: none;
 }
@@ -546,8 +546,15 @@ body::before {
 .player-content img {
     width: 44px;
     height: 44px;
-    border-radius: 4px; /* standard rounded.sm for small elements */
+    border-radius: 50%; /* Make it round like a vinyl record */
     object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s;
+}
+
+.bottom-player.playing .player-content img {
+    animation: rotate 15s linear infinite;
+    box-shadow: 0 0 10px rgba(255, 42, 150, 0.3);
 }
 
 .mini-info {
@@ -1118,7 +1125,7 @@ body::before {
     top: -150vw;
     left: -50vw;
     border-radius: 43%;
-    background: linear-gradient(135deg, rgba(0, 112, 209, 0.08) 0%, rgba(0, 242, 254, 0.04) 50%, rgba(155, 81, 224, 0.08) 100%);
+    background: linear-gradient(135deg, rgba(255, 42, 150, 0.08) 0%, rgba(139, 44, 245, 0.04) 50%, rgba(155, 81, 224, 0.08) 100%);
     animation: drift 22s infinite linear;
 }
 
@@ -1126,14 +1133,14 @@ body::before {
     animation: drift 28s infinite linear;
     opacity: 0.6;
     border-radius: 40%;
-    background: linear-gradient(135deg, rgba(0, 242, 254, 0.06) 0%, rgba(0, 112, 209, 0.05) 50%, rgba(255, 42, 95, 0.03) 100%);
+    background: linear-gradient(135deg, rgba(139, 44, 245, 0.06) 0%, rgba(255, 42, 150, 0.05) 50%, rgba(255, 42, 95, 0.03) 100%);
 }
 
 .wave.wave3 {
     animation: drift 35s infinite linear;
     opacity: 0.3;
     border-radius: 45%;
-    background: linear-gradient(135deg, rgba(155, 81, 224, 0.05) 0%, rgba(0, 112, 209, 0.04) 100%);
+    background: linear-gradient(135deg, rgba(155, 81, 224, 0.05) 0%, rgba(139, 44, 245, 0.04) 100%);
 }
 
 @keyframes drift {
