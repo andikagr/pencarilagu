@@ -1134,3 +1134,42 @@ body::before {
     border-color: var(--accent);
     box-shadow: 0 15px 35px rgba(0, 112, 209, 0.15);
 }
+
+/* New User Logo Styles */
+.header-logo-icon {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    background: var(--surface-dark-card);
+    padding: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s;
+}
+
+.header-logo-icon:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 15px rgba(255, 42, 150, 0.4);
+    background: rgba(255, 42, 150, 0.1);
+    border-color: rgba(255, 42, 150, 0.3);
+}
+
+.welcome-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    margin-bottom: 25px;
+    filter: drop-shadow(0 0 20px rgba(255, 42, 150, 0.5));
+    animation: pulseGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 15px rgba(255, 42, 150, 0.4));
+    }
+    100% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 30px rgba(255, 42, 150, 0.7));
+    }
+}
