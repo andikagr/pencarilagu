@@ -22,11 +22,11 @@
         <div class="home-heder">
             <div class="header-text">
                 <span class="greeting">Vibe Edition</span>
-                <h2 class="username">Music Center</h2>
+                <h2 class="username" id="display-username">Music Center</h2>
             </div>
             <div class="header-icons">
-                <img src="logo.png" alt="Logo" class="header-logo-icon">
-                <i class="fa-solid fa-gamepad"></i>
+                <img src="logo.png" alt="Logo" class="header-logo-icon" onclick="openAuthModal()" style="cursor: pointer;">
+                <i class="fa-solid fa-user" id="user-btn" onclick="openAuthModal()"></i>
                 <i class="fa-solid fa-gear"></i>
             </div>
         </div>
@@ -210,6 +210,21 @@
             <div id="like-options-list" class="pl-select-list">
             </div>
             <button onclick="closeModal('modal-like-options')" class="btn-cancel full-width">Batal</button>
+        </div>
+    </div>
+
+    <div id="modal-auth" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="auth-title">Masuk ke Vibe Music</h3>
+            <input type="text" id="auth-username" placeholder="Username">
+            <input type="password" id="auth-password" placeholder="Password">
+            <div class="modal-btns">
+                <button onclick="submitAuth()" class="btn-save" id="auth-submit-btn">Masuk</button>
+            </div>
+            <p style="text-align: center; font-size: 13px; color: var(--text-gray); cursor: pointer;" id="auth-toggle" onclick="toggleAuthMode()">
+                Belum punya akun? Daftar disini
+            </p>
+            <button onclick="closeModal('modal-auth')" class="btn-cancel full-width">Batal</button>
         </div>
     </div>
 

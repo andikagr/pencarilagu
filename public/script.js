@@ -17,18 +17,157 @@ let currentMeta = null;
 let currentPlaylistSongs = [];
 let isDraggingSlider = false;
 
+// --- AUTHENTICATION STATE & LOGIC ---
+let currentUser = localStorage.getItem('vibe_logged_in_user') || null;
+let authMode = 'login'; // 'login' or 'register'
+
+function getActiveUser() {
+    if (!currentUser) return null;
+    let users = JSON.parse(localStorage.getItem('vibe_users') || '[]');
+    return users.find(u => u.username === currentUser) || null;
+}
+
+function updateActiveUser(updatedData) {
+    if (!currentUser) return;
+    let users = JSON.parse(localStorage.getItem('vibe_users') || '[]');
+    let index = users.findIndex(u => u.username === currentUser);
+    if (index !== -1) {
+        users[index] = { ...users[index], ...updatedData };
+        localStorage.setItem('vibe_users', JSON.stringify(users));
+    }
+}
+
+function getLibrary() {
+    let user = getActiveUser();
+    return user ? user.library : [];
+}
+
+function saveLibrary(lib) {
+    updateActiveUser({ library: lib });
+}
+
+function getPlaylists() {
+    let user = getActiveUser();
+    return user ? user.playlists : [];
+}
+
+function savePlaylists(pls) {
+    updateActiveUser({ playlists: pls });
+}
+
+function openAuthModal() {
+    if (currentUser) {
+        if (confirm(`Apakah kamu ingin logout dari akun ${currentUser}?`)) {
+            logout();
+        }
+        return;
+    }
+    authMode = 'login';
+    document.getElementById('auth-title').innerText = 'Masuk ke Vibe Music';
+    document.getElementById('auth-submit-btn').innerText = 'Masuk';
+    document.getElementById('auth-toggle').innerText = 'Belum punya akun? Daftar disini';
+    document.getElementById('auth-username').value = '';
+    document.getElementById('auth-password').value = '';
+    document.getElementById('modal-auth').classList.add('active');
+}
+
+function toggleAuthMode() {
+    if (authMode === 'login') {
+        authMode = 'register';
+        document.getElementById('auth-title').innerText = 'Daftar Akun Baru';
+        document.getElementById('auth-submit-btn').innerText = 'Daftar';
+        document.getElementById('auth-toggle').innerText = 'Sudah punya akun? Masuk disini';
+    } else {
+        authMode = 'login';
+        document.getElementById('auth-title').innerText = 'Masuk ke Vibe Music';
+        document.getElementById('auth-submit-btn').innerText = 'Masuk';
+        document.getElementById('auth-toggle').innerText = 'Belum punya akun? Daftar disini';
+    }
+}
+
+function submitAuth() {
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
+
+    if (!username || !password) {
+        alert('Username dan password wajib diisi!');
+        return;
+    }
+
+    let users = JSON.parse(localStorage.getItem('vibe_users') || '[]');
+
+    if (authMode === 'register') {
+        const exists = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+        if (exists) {
+            alert('Username sudah terpakai!');
+            return;
+        }
+
+        const newUser = {
+            username: username,
+            password: password,
+            library: [],
+            playlists: []
+        };
+        users.push(newUser);
+        localStorage.setItem('vibe_users', JSON.stringify(users));
+        alert('Pendaftaran berhasil! Silakan masuk.');
+        toggleAuthMode();
+    } else {
+        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+        if (!user) {
+            alert('Username atau password salah!');
+            return;
+        }
+
+        currentUser = user.username;
+        localStorage.setItem('vibe_logged_in_user', currentUser);
+        closeModal('modal-auth');
+        alert(`Selamat datang kembali, ${currentUser}!`);
+        updateUserHeader();
+        loadLibrary();
+        checkLikeStatus();
+    }
+}
+
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('vibe_logged_in_user');
+    alert('Berhasil keluar akun.');
+    updateUserHeader();
+    loadLibrary();
+    checkLikeStatus();
+}
+
+function updateUserHeader() {
+    const userBtn = document.getElementById('user-btn');
+    const displayUsername = document.getElementById('display-username');
+    if (currentUser) {
+        displayUsername.innerText = `Hi, ${currentUser}`;
+        if (userBtn) {
+            userBtn.className = 'fa-solid fa-right-from-bracket';
+            userBtn.style.color = '#ff2a5f';
+        }
+    } else {
+        displayUsername.innerText = 'Music Center';
+        if (userBtn) {
+            userBtn.className = 'fa-solid fa-user';
+            userBtn.style.color = 'white';
+        }
+    }
+}
+
 // --- INITIALIZATION ---
 window.onload = () => {
+    updateUserHeader();
     loadLibrary();
 };
 
-// --- NAVIGATION (FIXED: NO BLINK/KEDIPAN) ---
+// --- NAVIGATION ---
 function switchTab(tabName) {
-    // 1. Tentukan target ID
     const targetId = tabName === 'playlist-detail' ? 'view-playlist-detail' : `view-${tabName}`;
     const targetView = document.getElementById(targetId);
 
-    // 2. Hide semua view KECUALI target (agar tidak numpuk tapi langsung ganti)
     document.querySelectorAll('.page-view').forEach(el => {
         if (el.id !== targetId) {
             el.style.display = 'none';
@@ -36,13 +175,11 @@ function switchTab(tabName) {
         }
     });
 
-    // 3. Langsung tampilkan target tanpa setTimeout (INSTAN)
     if (targetView) {
         targetView.style.display = 'block';
         targetView.classList.add('active');
     }
 
-    // Update icon navbar aktif
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
     const navIndex = ['home', 'search', 'library'].indexOf(tabName);
@@ -82,10 +219,10 @@ async function performSearch(query) {
                 item.className = 'result-item';
 
                 // Cek if liked
-                const lib = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+                const lib = getLibrary();
                 const isLiked = lib.find(s => s.url === song.url);
                 const heartClass = isLiked ? 'fa-solid' : 'fa-regular';
-                const heartColor = isLiked ? 'var(--accent)' : 'var(--text-gray)';
+                const heartColor = isLiked ? '#ff2a5f' : 'var(--text-gray)';
 
                 item.innerHTML = `
                     <img src="${song.thumbnail}" alt="art">
@@ -99,9 +236,7 @@ async function performSearch(query) {
                     </div>
                 `;
 
-                // Handle Click
                 item.onclick = (e) => {
-                    // Jika klik heart
                     if (e.target.classList.contains('like-btn-search')) {
                         e.stopPropagation();
                         toggleLikeFromSearch(song, e.target);
@@ -128,11 +263,16 @@ async function performSearch(query) {
 }
 
 function toggleLikeFromSearch(song, iconEl) {
-    let lib = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+    if (!currentUser) {
+        alert('Silakan login terlebih dahulu untuk menyukai lagu!');
+        openAuthModal();
+        return;
+    }
+
+    let lib = getLibrary();
     const index = lib.findIndex(s => s.url === song.url);
 
     if (index === -1) {
-        // Add
         lib.unshift({
             url: song.url,
             title: song.title,
@@ -141,18 +281,17 @@ function toggleLikeFromSearch(song, iconEl) {
         });
         iconEl.classList.remove('fa-regular');
         iconEl.classList.add('fa-solid');
-        iconEl.style.color = 'var(--accent)';
+        iconEl.style.color = '#ff2a5f';
         alert("Ditambahkan ke Liked Songs");
     } else {
-        // Remove
         lib.splice(index, 1);
         iconEl.classList.remove('fa-solid');
         iconEl.classList.add('fa-regular');
         iconEl.style.color = 'var(--text-gray)';
         alert("Dihapus dari Liked Songs");
     }
-    localStorage.setItem('tenjer_library', JSON.stringify(lib));
-    loadLibrary(); // Refresh library view if open
+    saveLibrary(lib);
+    loadLibrary();
 }
 
 // --- PLAYER LOGIC ---
@@ -163,7 +302,6 @@ async function playMusic(songData) {
     document.getElementById('mini-play-btn').className = 'fa-solid fa-spinner fa-spin';
 
     try {
-        // Langsung gunakan URL audio preview dari iTunes (lebih cepat & hemat bandwidth serverless)
         audio.src = songData.url;
         audio.preload = "auto";
         await audio.play();
@@ -187,13 +325,12 @@ function updateUI(meta) {
     document.getElementById('full-title').innerText = meta.title;
     document.getElementById('full-artist').innerText = meta.artist;
 
-    // Cek status Like (hanya visual awal)
     checkLikeStatus();
 }
 
 function checkLikeStatus() {
     if (!currentMeta) return;
-    const lib = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+    const lib = getLibrary();
     const isLiked = lib.find(s => s.url === currentMeta.url);
     const likeBtn = document.getElementById('like-btn');
 
@@ -285,7 +422,6 @@ mainSlider.addEventListener('change', (e) => {
 audio.addEventListener('ended', async () => {
     if (!currentMeta) return;
 
-    // Auto Play Logic
     const currentIndex = currentPlaylistSongs.findIndex(s => s.url === currentMeta.url);
     if (currentIndex !== -1 && currentIndex < currentPlaylistSongs.length - 1) {
         playMusic(currentPlaylistSongs[currentIndex + 1]);
@@ -327,26 +463,28 @@ function formatTime(s) {
 }
 
 // --- LIBRARY & PLAYLIST MANAGEMENT ---
-
 function openLikeOptionModal() {
     if (!currentMeta) return;
+    if (!currentUser) {
+        alert('Silakan login terlebih dahulu!');
+        openAuthModal();
+        return;
+    }
 
     document.getElementById('modal-like-options').classList.add('active');
     const listDiv = document.getElementById('like-options-list');
     listDiv.innerHTML = '';
 
-    // Opsi 1: Liked Songs (Default)
     const likedItem = document.createElement('div');
     likedItem.className = 'pl-select-item';
-    likedItem.innerHTML = `<div style="width:40px;height:40px;background:var(--green);display:flex;align-items:center;justify-content:center;border-radius:4px;"><i class="fa-solid fa-heart" style="color:white"></i></div><span>Liked Songs</span>`;
+    likedItem.innerHTML = `<div style="width:40px;height:40px;background:var(--accent);display:flex;align-items:center;justify-content:center;border-radius:4px;"><i class="fa-solid fa-heart" style="color:white"></i></div><span>Liked Songs</span>`;
     likedItem.onclick = () => {
         toggleLikedSongs();
         closeModal('modal-like-options');
     };
     listDiv.appendChild(likedItem);
 
-    // Opsi 2: Custom Playlists
-    const playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+    const playlists = getPlaylists();
     playlists.forEach(pl => {
         const item = document.createElement('div');
         item.className = 'pl-select-item';
@@ -360,7 +498,13 @@ function openLikeOptionModal() {
 }
 
 function toggleLikedSongs() {
-    let lib = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+    if (!currentUser) {
+        alert('Silakan login terlebih dahulu!');
+        openAuthModal();
+        return;
+    }
+
+    let lib = getLibrary();
     const exists = lib.find(s => s.url === currentMeta.url);
 
     if (!exists) {
@@ -371,21 +515,32 @@ function toggleLikedSongs() {
         alert("Dihapus dari Liked Songs");
     }
 
-    localStorage.setItem('tenjer_library', JSON.stringify(lib));
+    saveLibrary(lib);
     checkLikeStatus();
     loadLibrary();
 }
 
-// Render Library
 function loadLibrary() {
     libraryList.innerHTML = '';
 
+    if (!currentUser) {
+        libraryList.innerHTML = `
+            <div style="text-align:center; padding: 45px 20px; background: var(--surface-dark-elevated); border-radius: 8px; border: 1px solid var(--glass-border);">
+                <i class="fa-solid fa-lock" style="font-size: 40px; color: var(--accent); margin-bottom:15px; filter: drop-shadow(0 0 10px rgba(0,112,209,0.3));"></i>
+                <h3 style="font-weight: 300; margin-bottom: 10px;">Library Terkunci</h3>
+                <p style="color:var(--text-mute); font-size:13px; margin-bottom:20px; line-height:1.4;">Silakan login terlebih dahulu untuk membuat playlist dan menyimpan lagu favorit.</p>
+                <button onclick="openAuthModal()" class="btn-save" style="padding: 10px 24px; border-radius: 9999px; border:none; font-weight:700; cursor:pointer;">Masuk / Daftar</button>
+            </div>
+        `;
+        return;
+    }
+
     // Folder Liked Songs
-    const liked = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+    const liked = getLibrary();
     const likedDiv = document.createElement('div');
     likedDiv.className = 'result-item liked-songs-card';
     likedDiv.innerHTML = `
-        <div style="width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:20px; background: rgba(255,255,255,0.1); border-radius:10px;"><i class="fa-solid fa-heart" style="color:var(--accent)"></i></div>
+        <div style="width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:20px; background: rgba(255,255,255,0.1); border-radius:8px;"><i class="fa-solid fa-heart" style="color:#ff2a5f"></i></div>
         <div class="result-info">
             <h4>Liked Songs</h4>
             <p>${liked.length} liked songs</p>
@@ -395,7 +550,7 @@ function loadLibrary() {
     libraryList.appendChild(likedDiv);
 
     // Custom Playlists
-    const playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+    const playlists = getPlaylists();
     playlists.forEach(pl => {
         const item = document.createElement('div');
         item.className = 'result-item';
@@ -417,7 +572,14 @@ function loadLibrary() {
 }
 
 // Modal Helpers
-function openCreateModal() { document.getElementById('modal-create-playlist').classList.add('active'); }
+function openCreateModal() { 
+    if (!currentUser) {
+        alert('Silakan login terlebih dahulu!');
+        openAuthModal();
+        return;
+    }
+    document.getElementById('modal-create-playlist').classList.add('active'); 
+}
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 document.getElementById('new-pl-file').addEventListener('change', function (e) {
@@ -434,9 +596,9 @@ function saveNewPlaylist() {
 
     const save = (imgSrc) => {
         const newPl = { id: Date.now(), name: name, image: imgSrc, songs: [] };
-        const playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+        const playlists = getPlaylists();
         playlists.push(newPl);
-        localStorage.setItem('tenjer_playlists', JSON.stringify(playlists));
+        savePlaylists(playlists);
 
         closeModal('modal-create-playlist');
         document.getElementById('new-pl-name').value = '';
@@ -459,9 +621,9 @@ function saveNewPlaylist() {
 function deletePlaylist(id, e) {
     e.stopPropagation();
     if (!confirm("Hapus playlist ini?")) return;
-    let playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+    let playlists = getPlaylists();
     playlists = playlists.filter(p => p.id !== id);
-    localStorage.setItem('tenjer_playlists', JSON.stringify(playlists));
+    savePlaylists(playlists);
     loadLibrary();
 }
 
@@ -469,7 +631,6 @@ function openPlaylistDetail(id, name, img) {
     const detailView = document.getElementById('view-playlist-detail');
     const targetId = 'view-playlist-detail';
 
-    // 1. Hide view lain
     document.querySelectorAll('.page-view').forEach(el => {
         if (el.id !== targetId) {
             el.style.display = 'none';
@@ -477,7 +638,6 @@ function openPlaylistDetail(id, name, img) {
         }
     });
 
-    // 2. Langsung tampilkan detail
     detailView.style.display = 'block';
     detailView.classList.add('active');
 
@@ -489,9 +649,9 @@ function openPlaylistDetail(id, name, img) {
 
     let songs = [];
     if (id === 'liked') {
-        songs = JSON.parse(localStorage.getItem('tenjer_library') || '[]');
+        songs = getLibrary();
     } else {
-        const playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+        const playlists = getPlaylists();
         const pl = playlists.find(p => p.id === id);
         songs = pl ? pl.songs : [];
     }
@@ -529,12 +689,17 @@ function playPlaylistAll() {
 
 function openAddToPlaylistModal() {
     if (!currentMeta) return alert("Putar lagu dulu!");
+    if (!currentUser) {
+        alert('Silakan login terlebih dahulu!');
+        openAuthModal();
+        return;
+    }
     document.getElementById('modal-add-to-pl').classList.add('active');
 
     const listDiv = document.getElementById('list-pl-for-add');
     listDiv.innerHTML = '';
 
-    const playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+    const playlists = getPlaylists();
     if (playlists.length === 0) {
         listDiv.innerHTML = '<p style="text-align:center;">Belum ada playlist.</p>';
         return;
@@ -550,7 +715,7 @@ function openAddToPlaylistModal() {
 }
 
 function addSongToPlaylist(plId) {
-    let playlists = JSON.parse(localStorage.getItem('tenjer_playlists') || '[]');
+    let playlists = getPlaylists();
     const index = playlists.findIndex(p => p.id === plId);
 
     if (index !== -1) {
@@ -559,7 +724,7 @@ function addSongToPlaylist(plId) {
             alert("Lagu sudah ada di playlist ini!");
         } else {
             playlists[index].songs.push(currentMeta);
-            localStorage.setItem('tenjer_playlists', JSON.stringify(playlists));
+            savePlaylists(playlists);
             alert("Berhasil ditambahkan!");
             closeModal('modal-add-to-pl');
         }
