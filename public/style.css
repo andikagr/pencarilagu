@@ -1069,3 +1069,68 @@ body::before {
     font-size: 14px;
     font-weight: 600;
 }
+
+/* --- PLAYSTATION DYNAMIC FLOWING WAVES BACKGROUND --- */
+.ps-background-waves {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1; /* Di bawah semua content tapi di atas solid bg */
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.25; /* Transparansi agar tidak menutupi tulisan */
+}
+
+.wave {
+    position: absolute;
+    width: 200vw;
+    height: 200vw;
+    top: -150vw;
+    left: -50vw;
+    border-radius: 43%;
+    background: linear-gradient(135deg, rgba(0, 112, 209, 0.08) 0%, rgba(0, 242, 254, 0.04) 50%, rgba(155, 81, 224, 0.08) 100%);
+    animation: drift 22s infinite linear;
+}
+
+.wave.wave2 {
+    animation: drift 28s infinite linear;
+    opacity: 0.6;
+    border-radius: 40%;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.06) 0%, rgba(0, 112, 209, 0.05) 50%, rgba(255, 42, 95, 0.03) 100%);
+}
+
+.wave.wave3 {
+    animation: drift 35s infinite linear;
+    opacity: 0.3;
+    border-radius: 45%;
+    background: linear-gradient(135deg, rgba(155, 81, 224, 0.05) 0%, rgba(0, 112, 209, 0.04) 100%);
+}
+
+@keyframes drift {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- EXTRA UI MICRO-INTERACTIONS --- */
+
+/* Result Item Image Zoom effect */
+.result-item:hover img {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 112, 209, 0.3);
+}
+
+.result-item img {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+}
+
+/* Bottom Player Hover highlight */
+.bottom-player:hover {
+    border-color: var(--accent);
+    box-shadow: 0 15px 35px rgba(0, 112, 209, 0.15);
+}
